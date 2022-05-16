@@ -46,13 +46,9 @@ class PlanningGraph:
                     ground_actions.append(act)
         state_temp = {}
         # 初始状态的所有predicate均记为1，对于negative的predicate怎么办?
-        # for s in readpddl.state:
         for s in readpddl.init_state:
             state_temp[str(s)] = 1
         self.states[1] = state_temp
-        # for p in readpddl.positive_goals:
-        #     if not p in self.states[1]:
-        #         self.states[1][str(p)] = -1
 
         # ------------------------------problem to be solved------------------------------
         # self.states[1]["('occupied', 'location2c')"] = -1
