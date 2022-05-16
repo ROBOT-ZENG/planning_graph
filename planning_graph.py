@@ -38,7 +38,6 @@ class PlanningGraph:
             for act in action.instantiate(readpddl.objects):
                 all_predicates = set()
                 static_predicate = set()
-                
                 all_predicates = set(act.positive_preconditions) | set(act.negative_preconditions) | set(act.add_effects) | set(act.del_effects)
                 for predicate in all_predicates:
                     if predicate[0] == 'neighbor' or predicate[0] == 'belong' or predicate[0] == 'getnew' or predicate[0] == 'locate':
@@ -47,8 +46,8 @@ class PlanningGraph:
                     ground_actions.append(act)
         state_temp = {}
         # 初始状态的所有predicate均记为1，对于negative的predicate怎么办?
-        for s in readpddl.state:
-            # for s in readpddl.init_state
+        # for s in readpddl.state:
+        for s in readpddl.init_state:
             state_temp[str(s)] = 1
         self.states[1] = state_temp
         # for p in readpddl.positive_goals:
