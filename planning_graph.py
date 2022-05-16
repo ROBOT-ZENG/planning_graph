@@ -45,6 +45,7 @@ class PlanningGraph:
                 if static_predicate.issubset(readpddl.state):
                     ground_actions.append(act)
         state_temp = {}
+
         # 初始状态的所有predicate均记为1，对于negative的predicate怎么办?
         for s in readpddl.state:
             # for s in readpddl.init_state
