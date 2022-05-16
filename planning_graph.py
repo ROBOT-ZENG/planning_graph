@@ -38,6 +38,7 @@ class PlanningGraph:
             for act in action.instantiate(readpddl.objects):
                 all_predicates = set()
                 static_predicate = set()
+                
                 all_predicates = set(act.positive_preconditions) | set(act.negative_preconditions) | set(act.add_effects) | set(act.del_effects)
                 for predicate in all_predicates:
                     if predicate[0] == 'neighbor' or predicate[0] == 'belong' or predicate[0] == 'getnew' or predicate[0] == 'locate':
