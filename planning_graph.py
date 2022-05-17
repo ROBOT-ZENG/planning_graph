@@ -34,18 +34,18 @@ class PlanningGraph:
         readpddl.read_domain(domainfile)
         readpddl.read_problem(problemfile)
         ground_actions = []
+        print('readpddl.objects',readpddl.objects)
         for action in readpddl.actions:
             for act in action.instantiate(readpddl.objects):
                 all_predicates = set()
-                static_predicate = set()
+                static_predicates = set()
                 all_predicates = set(act.positive_preconditions) | set(act.negative_preconditions) | set(act.add_effects) | set(act.del_effects)
                 for predicate in all_predicates:
                     if predicate[0] == 'neighbor' or predicate[0] == 'belong' or predicate[0] == 'getnew' or predicate[0] == 'locate':
-                        static_predicate.add(predicate)
-                if static_predicate.issubset(readpddl.state):
+                        static_predicates.add(predicate)
+                if static_predicates.issubset(readpddl.state):
                     ground_actions.append(act)
         state_temp = {}
-        # 初始状态的所有predicate均记为1，对于negative的predicate怎么办?
         for s in readpddl.init_state:
             state_temp[str(s)] = 1
         self.states[1] = state_temp
@@ -57,12 +57,10 @@ class PlanningGraph:
         # Some actions are still meaningless impossible, such as move('cart', 'location1c', 'location2b'), delete them.
         # ------------------------------problem to be solved------------------------------
 
-        # print('self.states', self.states)
         for p in readpddl.positive_goal:
             self.goal[str(p)] = 1
         for p in readpddl.negative_goal:
             self.goal[str(p)] = -1
-        # print('self.goal', self.goal)
         for g in ground_actions:
             pre = {}
             eff = {}
@@ -79,12 +77,11 @@ class PlanningGraph:
                 eff[str(p)] = -1
             temp_action_data.append(eff)
             self.actions[action_name] = temp_action_data
-        # print('self.actions',self.actions)
         fd = open("./data.txt", "w")
         string = str(self.actions)
         fd.write(string)
         fd.close()
-        # print(len(self.actions))
+        print('Action Generation Completed!')
 
     def extendGraph(self):
         current_state = 1
@@ -121,12 +118,12 @@ class PlanningGraph:
             self.states[current_state + 1] = temp_state
             self.action_state[current_state] = action_state
             self.printStates(current_state)
-            # print("------------")
+            print("------------")
             current_state += 1
             self.printAction(current_state - 1)
-            # print("------------")
+            print("------------")
             self.printStates(current_state)
-            # print("------------")
+            print("------------")
             self.mutexes(current_state)
 
     def checkGoal(self, state):
@@ -138,10 +135,6 @@ class PlanningGraph:
                 goals_pos.append(goal)
             else:
                 goals_neg.append(goal)
-            # if (self.goal[goal] == -1):
-            #     goals.append("not" + goal)
-            # else:
-            #     goals.append(goal)
         goal_act = {}
 
         # state_goal = ["('at', 'robot1', 'location2b')", "('at', 'cart', 'location2c')", "('on', 'part2', 'robothand1')"]
@@ -250,7 +243,7 @@ class PlanningGraph:
         self.interference(state - 1)
         self.comptetingNeeds(state - 1)
         self.inconsistentSupport(state)
-        # print("------------")
+        print("------------")
 
     def negatedLiteral(self, state):
         nl_mutex = []
@@ -284,7 +277,6 @@ class PlanningGraph:
             ie_mutexes[action] = temp_ie
 
         self.ie_mutex[state] = ie_mutexes
-        # print(self.actions)
         # print("IE mutex at action state", state, "--", ie_mutexes)
 
     # Interference: one action deletes a precondition of another
@@ -404,14 +396,14 @@ class PlanningGraph:
         states = self.states[state]
         for state in states:
             if (states[state] == 2):
-                # print(state, "--> no-op -->", state)
+                print(state, "--> no-op -->", state)
                 state = "not" + state
-                # print(state, "--> no-op -->", state)
+                print(state, "--> no-op -->", state)
             elif states[state] == -1:
                 state = "not" + state
-                # print(state, "--> no-op -->", state)
-            # else:
-            # print(state, "--> no-op -->", state)
+                print(state, "--> no-op -->", state)
+            else:
+                print(state, "--> no-op -->", state)
         for action in c_actions:
             pre_cond = []
             effects = []
@@ -426,10 +418,10 @@ class PlanningGraph:
                 else:
                     effects.append(x)
 
-            # print(pre_cond, "-->", action, "-->", effects)
+            print(pre_cond, "-->", action, "-->", effects)
 
     def printStates(self, state):
-        # print("Literals at state -", state, ":")
+        print("Literals at state -", state, ":")
         c_states = self.states[state]
         st = []
         for x in c_states:
@@ -440,7 +432,7 @@ class PlanningGraph:
                 st.append("not" + x)
             else:
                 st.append(x)
-        # print(st)
+        print(st)
 
 
 if __name__ == '__main__':
