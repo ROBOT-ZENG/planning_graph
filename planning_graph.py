@@ -11,6 +11,7 @@ import time
 class PlanningGraph:
 
     def __init__(self):
+        self.readpddl = PDDL()
         self.states = {}
         self.actions = {}
         self.goal = {}
@@ -29,24 +30,50 @@ class PlanningGraph:
         # Inconsistent Support: all the ways of achieving the propositions are pairwise mutex.
         self.is_mutex = {}
 
-    def solve_file(self, domainfile, problemfile):
-        readpddl = PDDL()
-        readpddl.read_domain(domainfile)
-        readpddl.read_problem(problemfile)
-        ground_actions = []
-        print('readpddl.objects',readpddl.objects)
-        for action in readpddl.actions:
-            for act in action.instantiate(readpddl.objects):
-                all_predicates = set()
-                static_predicates = set()
+    def check_possibility(self, static_pred, forbid_pair):
+        ground_act = []
+        for action in self.readpddl.actions:
+            for act in action.instantiate(self.readpddl.objects):
+                if act.name in forbid_pair and forbid_pair[act.name] == act.parameters[0]:
+                    continue
+                if act.name == 'move':
+                    if act.parameters[0] == 'human1' and not (act.parameters[1][-1] == 'b' and act.parameters[2][-1] == 'b'):
+                        continue
+                    if act.parameters[0] == 'robot1' and not (act.parameters[1][-1] == 'b' and act.parameters[2][-1] == 'b'):
+                        continue
+                    if act.parameters[0] == 'cart' and not (act.parameters[1][-1] == 'c' and act.parameters[2][-1] == 'c'):
+                        continue
+                elif act.name == 'assemble':
+                    if act.parameters[0] == 'cart':
+                        continue
+                elif act.name == 'pass':
+                    if act.parameters[0] == act.parameters[1] or act.parameters[0] == 'cart' or act.parameters[2][-1] != 'b' or act.parameters[3][-1] == 'a':
+                        continue
+                    if (act.parameters[1] == 'cart'):
+                        holder_owner = {'part1abcd': 'part1abcd_holder', 'part2': 'part2_holder', 'part3': 'part3_holder', 'part4': 'part4_holder'}
+                        if act.parameters[3][-1] != 'c' or act.parameters[4] in ['part1a', 'part1b', 'part1c', 'part1d', 'part1ab', 'part1abc']:
+                            continue
+                        if act.parameters[4] in holder_owner and holder_owner[act.parameters[4]] != act.parameters[-1]:
+                            continue
+
                 all_predicates = set(act.positive_preconditions) | set(act.negative_preconditions) | set(act.add_effects) | set(act.del_effects)
+                static_predicates = set()
                 for predicate in all_predicates:
-                    if predicate[0] == 'neighbor' or predicate[0] == 'belong' or predicate[0] == 'getnew' or predicate[0] == 'locate':
+                    if predicate[0] in static_pred:
                         static_predicates.add(predicate)
-                if static_predicates.issubset(readpddl.state):
-                    ground_actions.append(act)
+                if static_predicates.issubset(self.readpddl.state):
+                    ground_act.append(act)
+        return ground_act
+
+    def solve_file(self, domainfile, problemfile):
+
+        self.readpddl.read_domain(domainfile)
+        self.readpddl.read_problem(problemfile)
+        static_pred = ['neighbor', 'belong', 'getnew', 'locate']
+        forbid_pair = {'pick': 'cart'}
+        ground_actions = self.check_possibility(static_pred, forbid_pair)
         state_temp = {}
-        for s in readpddl.init_state:
+        for s in self.readpddl.init_state:
             state_temp[str(s)] = 1
         self.states[1] = state_temp
 
@@ -57,9 +84,9 @@ class PlanningGraph:
         # Some actions are still meaningless impossible, such as move('cart', 'location1c', 'location2b'), delete them.
         # ------------------------------problem to be solved------------------------------
 
-        for p in readpddl.positive_goal:
+        for p in self.readpddl.positive_goal:
             self.goal[str(p)] = 1
-        for p in readpddl.negative_goal:
+        for p in self.readpddl.negative_goal:
             self.goal[str(p)] = -1
         for g in ground_actions:
             pre = {}
@@ -81,11 +108,10 @@ class PlanningGraph:
         string = str(self.actions)
         fd.write(string)
         fd.close()
-        print('Action Generation Completed!')
+        print('Action Generation Completed!', len(self.actions))
 
     def extendGraph(self):
         current_state = 1
-
         # check if the goal state exist in the graph plan otherwise extend the graph
         while self.checkGoal(current_state):
             temp_state = self.states[current_state].copy()
@@ -106,25 +132,21 @@ class PlanningGraph:
                     effects = self.actions[action][1]
                     for fluent in effects:
                         if fluent in self.states[current_state]:
-                            # Mark一下，这个地方好像有问题
-                            # 是否需要考虑先positive后negative，还是先negative后positive这两种情况
                             if self.states[current_state][fluent] + effects[fluent] == 0:
                                 temp_state[fluent] = 2
-                            # 这种情况不可能存在
-                            elif fluent not in temp_state:
-                                temp_state[fluent] = effects[fluent]
-                        else:
+                        elif fluent not in self.states[current_state] and effects[fluent]==1:
                             temp_state[fluent] = effects[fluent]
+
             self.states[current_state + 1] = temp_state
             self.action_state[current_state] = action_state
             self.printStates(current_state)
-            print("------------")
+            # print("------------")
             current_state += 1
             self.printAction(current_state - 1)
-            print("------------")
+            # print("------------")
             self.printStates(current_state)
-            print("------------")
-            self.mutexes(current_state)
+            # print("------------")
+            # self.mutexes(current_state)
 
     def checkGoal(self, state):
         goals_pos = []
@@ -136,7 +158,6 @@ class PlanningGraph:
             else:
                 goals_neg.append(goal)
         goal_act = {}
-
         # state_goal = ["('at', 'robot1', 'location2b')", "('at', 'cart', 'location2c')", "('on', 'part2', 'robothand1')"]
         for s in self.states[1]:
             if self.states[1][s] == 1:
@@ -146,7 +167,6 @@ class PlanningGraph:
         current_state = self.states[state]
         for goal in self.goal:
             if goal in current_state:
-                # 同上，需要考虑得更加仔细一些
                 if self.goal[goal] != current_state[goal] and current_state[goal] != 2:
                     return True
             else:
@@ -155,87 +175,88 @@ class PlanningGraph:
         if self.is_mutex[state]:
             return True
 
-        c_st = 1
-        actions = self.action_state
-        while c_st < state:
-            for action in actions:
-                for lit in actions[action]:
-                    i_mutex = self.i_mutex[c_st]
-                    # there are mutex actions in current action state
-                    # why lit must be in i_mutex?
-                    if lit in i_mutex and set(i_mutex[lit]).issubset(actions[action]):
-                        # if goal_act is empty
-                        if not goal_act:
-                            goal_act[c_st] = lit
-                            effects = self.actions[lit][1]
-                            for eff in effects:
-                                if (effects[eff] == -1):
-                                    if eff in state_goal:
-                                        state_goal.remove(eff)
-                                    # if not ("not" + eff) in state_goal:
-                                    #     state_goal.append("not" + eff)
-                                elif (effects[eff] == 1):
-                                    if ("not" + eff) in state_goal:
-                                        state_goal.remove("not" + eff)
-                                    if not eff in state_goal:
-                                        state_goal.append(eff)
+        # c_st = 1
+        # actions = self.action_state
+        # while c_st < state:
+        #     for action in actions:
+        #         for lit in actions[action]:
+        #             i_mutex = self.i_mutex[c_st]
+        #             # there are mutex actions in current action state
+        #             # why lit must be in i_mutex?
+        #             if lit in i_mutex and set(i_mutex[lit]).issubset(actions[action]):
+        #                 # if goal_act is empty
+        #                 if not goal_act:
+        #                     goal_act[c_st] = lit
+        #                     effects = self.actions[lit][1]
+        #                     for eff in effects:
+        #                         if (effects[eff] == -1):
+        #                             if eff in state_goal:
+        #                                 state_goal.remove(eff)
+        #                             # if not ("not" + eff) in state_goal:
+        #                             #     state_goal.append("not" + eff)
+        #                         elif (effects[eff] == 1):
+        #                             if ("not" + eff) in state_goal:
+        #                                 state_goal.remove("not" + eff)
+        #                             if not eff in state_goal:
+        #                                 state_goal.append(eff)
+        #
+        #                     # for eff in effects:
+        #                     #     if (effects[eff] == -1):
+        #                     #         state_goal.remove(eff)
+        #                     #         state_goal.append("not" + eff)
+        #                     #     else:
+        #                     #         state_goal.remove("not" + eff)
+        #                     #         state_goal.append(eff)
+        #                 elif c_st != 1:
+        #                     # goal_act[c_st] = None
+        #                     if not (lit in goal_act.values()):
+        #                         # for key in list(goal_act.keys()):
+        #                         #     if goal_act[key] != lit:
+        #                         pre_cond = self.actions[lit][0]
+        #                         temp_pre_pos = []
+        #                         temp_pre_neg = []
+        #                         for eff in pre_cond:
+        #                             # if (pre_cond[eff] == -1):
+        #                             #     temp_pre.append("not" + eff)
+        #                             # else:
+        #                             #     temp_pre.append(eff)
+        #                             if (pre_cond[eff] == -1):
+        #                                 temp_pre_neg.append(eff)
+        #                             else:
+        #                                 temp_pre_pos.append(eff)
+        #
+        #                         if set(temp_pre_pos).issubset(state_goal) and (not set(temp_pre_neg).intersection(state_goal)):
+        #                             if not c_st in goal_act:
+        #                                 goal_act[c_st] = lit
+        #                                 effects = self.actions[lit][1]
+        #                                 for eff in effects:
+        #                                     if (effects[eff] == -1):
+        #                                         if eff in state_goal:
+        #                                             state_goal.remove(eff)
+        #                                         # if not ("not" + eff) in state_goal:
+        #                                         #     state_goal.append("not" + eff)
+        #                                     else:
+        #                                         if ("not" + eff) in state_goal:
+        #                                             state_goal.remove("not" + eff)
+        #                                         if not eff in state_goal:
+        #                                             state_goal.append(eff)
+        #                                     # if (effects[eff] == -1):
+        #                                     #     state_goal.remove(eff)
+        #                                     #     state_goal.append("not" + eff)
+        #                                     # else:
+        #                                     #     state_goal.remove("not" + eff)
+        #                                     #     state_goal.append(eff)
+        #
+        #         c_st += 1
+        # # print('goal_act', goal_act)
+        # # print('goals', goals_pos, goals_neg)
+        # # print('state_goal', state_goal)
+        # # print("-------------------------------------------------------------------------------------------------------------------")
+        # if not (set(goals_pos).issubset(state_goal) and (not set(goals_neg).intersection(state_goal))):
+        #     return True
+        # else:
+        #     print("Solution Path", goal_act)
 
-                            # for eff in effects:
-                            #     if (effects[eff] == -1):
-                            #         state_goal.remove(eff)
-                            #         state_goal.append("not" + eff)
-                            #     else:
-                            #         state_goal.remove("not" + eff)
-                            #         state_goal.append(eff)
-                        elif c_st != 1:
-                            # goal_act[c_st] = None
-                            if not (lit in goal_act.values()):
-                                # for key in list(goal_act.keys()):
-                                #     if goal_act[key] != lit:
-                                pre_cond = self.actions[lit][0]
-                                temp_pre_pos = []
-                                temp_pre_neg = []
-                                for eff in pre_cond:
-                                    # if (pre_cond[eff] == -1):
-                                    #     temp_pre.append("not" + eff)
-                                    # else:
-                                    #     temp_pre.append(eff)
-                                    if (pre_cond[eff] == -1):
-                                        temp_pre_neg.append(eff)
-                                    else:
-                                        temp_pre_pos.append(eff)
-
-                                if set(temp_pre_pos).issubset(state_goal) and (not set(temp_pre_neg).intersection(state_goal)):
-                                    if not c_st in goal_act:
-                                        goal_act[c_st] = lit
-                                        effects = self.actions[lit][1]
-                                        for eff in effects:
-                                            if (effects[eff] == -1):
-                                                if eff in state_goal:
-                                                    state_goal.remove(eff)
-                                                # if not ("not" + eff) in state_goal:
-                                                #     state_goal.append("not" + eff)
-                                            else:
-                                                if ("not" + eff) in state_goal:
-                                                    state_goal.remove("not" + eff)
-                                                if not eff in state_goal:
-                                                    state_goal.append(eff)
-                                            # if (effects[eff] == -1):
-                                            #     state_goal.remove(eff)
-                                            #     state_goal.append("not" + eff)
-                                            # else:
-                                            #     state_goal.remove("not" + eff)
-                                            #     state_goal.append(eff)
-
-                c_st += 1
-        # print('goal_act', goal_act)
-        # print('goals', goals_pos, goals_neg)
-        # print('state_goal', state_goal)
-        # print("-------------------------------------------------------------------------------------------------------------------")
-        if not (set(goals_pos).issubset(state_goal) and (not set(goals_neg).intersection(state_goal))):
-            return True
-        else:
-            print("Solution Path", goal_act)
 
     def mutexes(self, state):
         self.negatedLiteral(state)
@@ -243,7 +264,7 @@ class PlanningGraph:
         self.interference(state - 1)
         self.comptetingNeeds(state - 1)
         self.inconsistentSupport(state)
-        print("------------")
+        # print("------------")
 
     def negatedLiteral(self, state):
         nl_mutex = []
@@ -391,7 +412,7 @@ class PlanningGraph:
         self.is_mutex[state] = is_mutexes
 
     def printAction(self, state):
-        # print("Action at state -", state, ":")
+        print("Action at state -", state, ":")
         c_actions = self.action_state[state]
         states = self.states[state]
         for state in states:
@@ -402,8 +423,8 @@ class PlanningGraph:
             elif states[state] == -1:
                 state = "not" + state
                 print(state, "--> no-op -->", state)
-            else:
-                print(state, "--> no-op -->", state)
+            # else:
+            print(state, "--> no-op -->", state)
         for action in c_actions:
             pre_cond = []
             effects = []

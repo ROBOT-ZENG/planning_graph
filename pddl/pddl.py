@@ -191,6 +191,9 @@ class PDDL:
     # Split propositions
     # -----------------------------------------------
     def split_propositions(self, group, pos, neg, name, part):
+        """
+        get all kinds of candidates
+        """
         if not type(group) is list:
             raise Exception('Error with ' + name + part)
         if group[0] == 'and':
