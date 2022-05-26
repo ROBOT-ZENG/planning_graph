@@ -2,10 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="330aced8-d2df-43d2-8fd2-e5a378fb811d" name="Changes" comment="temp save">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data.txt" beforeDir="false" afterPath="$PROJECT_DIR$/data.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/problem_SPS.pddl" beforeDir="false" afterPath="$PROJECT_DIR$/examples/problem_SPS.pddl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pddl/pddl.py" beforeDir="false" afterPath="$PROJECT_DIR$/pddl/pddl.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/planning_graph.py" beforeDir="false" afterPath="$PROJECT_DIR$/planning_graph.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,13 +33,13 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "last_opened_file_path": "C:/Users/ZENG/Desktop/planning_graph"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/ZENG/OneDrive - The University of Tokyo/hr_task_allocation-generalization&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Python.planning_graph">
     <configuration name="pddl" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="planning_graph" />
@@ -128,7 +128,14 @@
       <option name="project" value="LOCAL" />
       <updated>1652767145291</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="temp save">
+      <created>1652853637043</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1652853637043</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

@@ -30,31 +30,33 @@ class PlanningGraph:
         # Inconsistent Support: all the ways of achieving the propositions are pairwise mutex.
         self.is_mutex = {}
 
-    def check_possibility(self, static_pred, forbid_pair):
+    def check_possibility(self, static_pred, agent_ability, agent_track):
         ground_act = []
         for action in self.readpddl.actions:
             for act in action.instantiate(self.readpddl.objects):
-                if act.name in forbid_pair and forbid_pair[act.name] == act.parameters[0]:
+                if act.name in agent_ability and (not act.parameters[0] in agent_ability[act.name]):
                     continue
-                if act.name == 'move':
-                    if act.parameters[0] == 'human1' and not (act.parameters[1][-1] == 'b' and act.parameters[2][-1] == 'b'):
-                        continue
-                    if act.parameters[0] == 'robot1' and not (act.parameters[1][-1] == 'b' and act.parameters[2][-1] == 'b'):
-                        continue
-                    if act.parameters[0] == 'cart' and not (act.parameters[1][-1] == 'c' and act.parameters[2][-1] == 'c'):
-                        continue
-                elif act.name == 'assemble':
-                    if act.parameters[0] == 'cart':
-                        continue
-                elif act.name == 'pass':
-                    if act.parameters[0] == act.parameters[1] or act.parameters[0] == 'cart' or act.parameters[2][-1] != 'b' or act.parameters[3][-1] == 'a':
-                        continue
-                    if (act.parameters[1] == 'cart'):
-                        holder_owner = {'part1abcd': 'part1abcd_holder', 'part2': 'part2_holder', 'part3': 'part3_holder', 'part4': 'part4_holder'}
-                        if act.parameters[3][-1] != 'c' or act.parameters[4] in ['part1a', 'part1b', 'part1c', 'part1d', 'part1ab', 'part1abc']:
-                            continue
-                        if act.parameters[4] in holder_owner and holder_owner[act.parameters[4]] != act.parameters[-1]:
-                            continue
+                # if act.name in forbid_pair and forbid_pair[act.name] == act.parameters[0]:
+                #     continue
+                # if act.name == 'move':
+                #     if act.parameters[0] == 'human1' and not (act.parameters[1][-1] == 'b' and act.parameters[2][-1] == 'b'):
+                #         continue
+                #     if act.parameters[0] == 'robot1' and not (act.parameters[1][-1] == 'b' and act.parameters[2][-1] == 'b'):
+                #         continue
+                #     if act.parameters[0] == 'cart' and not (act.parameters[1][-1] == 'c' and act.parameters[2][-1] == 'c'):
+                #         continue
+                # elif act.name == 'assemble':
+                #     if act.parameters[0] == 'cart':
+                #         continue
+                # elif act.name == 'pass':
+                #     if act.parameters[0] == act.parameters[1] or act.parameters[0] == 'cart' or act.parameters[2][-1] != 'b' or act.parameters[3][-1] == 'a':
+                #         continue
+                #     if (act.parameters[1] == 'cart'):
+                #         holder_owner = {'part1abcd': 'part1abcd_holder', 'part2': 'part2_holder', 'part3': 'part3_holder', 'part4': 'part4_holder'}
+                #         if act.parameters[3][-1] != 'c' or act.parameters[4] in ['part1a', 'part1b', 'part1c', 'part1d', 'part1ab', 'part1abc']:
+                #             continue
+                #         if act.parameters[4] in holder_owner and holder_owner[act.parameters[4]] != act.parameters[-1]:
+                #             continue
 
                 all_predicates = set(act.positive_preconditions) | set(act.negative_preconditions) | set(act.add_effects) | set(act.del_effects)
                 static_predicates = set()
@@ -70,8 +72,11 @@ class PlanningGraph:
         self.readpddl.read_domain(domainfile)
         self.readpddl.read_problem(problemfile)
         static_pred = ['neighbor', 'belong', 'getnew', 'locate']
-        forbid_pair = {'pick': 'cart'}
-        ground_actions = self.check_possibility(static_pred, forbid_pair)
+        agent_ability = {'pick': ['human1', 'robot1'], 'move': ['human1', 'robot1', 'cart'], 'assemble': ['human1', 'robot1'], 'pass': ['human1', 'robot1']}
+        agent_track = {'human1': 'b', 'robot1': 'b', 'cart': 'c'}
+        # forbid_pair={'pick':'cart'}
+        # ground_actions = self.check_possibility(static_pred, forbid_pair)
+        ground_actions = self.check_possibility(static_pred, agent_ability, agent_track)
         state_temp = {}
         for s in self.readpddl.init_state:
             state_temp[str(s)] = 1
@@ -134,7 +139,7 @@ class PlanningGraph:
                         if fluent in self.states[current_state]:
                             if self.states[current_state][fluent] + effects[fluent] == 0:
                                 temp_state[fluent] = 2
-                        elif fluent not in self.states[current_state] and effects[fluent]==1:
+                        elif fluent not in self.states[current_state] and effects[fluent] == 1:
                             temp_state[fluent] = effects[fluent]
 
             self.states[current_state + 1] = temp_state
@@ -256,7 +261,6 @@ class PlanningGraph:
         #     return True
         # else:
         #     print("Solution Path", goal_act)
-
 
     def mutexes(self, state):
         self.negatedLiteral(state)

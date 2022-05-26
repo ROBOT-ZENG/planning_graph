@@ -1,4 +1,2 @@
-a=['belong', 'cart', 'part2_holder']
-b=['belong', 'cart', 'part2_holder']
-if 'belong' in a:
-    print('yes')
+a={'q':'w','e':'r'}
+print(a[0])
